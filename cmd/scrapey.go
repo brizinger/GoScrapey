@@ -13,7 +13,7 @@ var rootCmd = &cobra.Command{
 	Long: `An image scraper build with love by Brizinger in Go
 				  More information can be found on http://github.com/brizinger/GoScrapey`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// Do Stuff Here
+		fmt.Printf("test")
 	},
 }
 
