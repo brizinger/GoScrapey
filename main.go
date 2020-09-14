@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/brizinger/goscrapey/cmd"
+	"github.com/brizinger/GoSrapey/cmd"
 )
 
 func main() {
