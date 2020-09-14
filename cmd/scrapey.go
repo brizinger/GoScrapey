@@ -11,9 +11,9 @@ var rootCmd = &cobra.Command{
 	Use:   "scrapey",
 	Short: "GoScrapey is a website image scraper",
 	Long: `An image scraper build with love by Brizinger in Go
-				  More information can be found on http://github.com/brizinger/GoScrapey`,
+	More information can be found on http://github.com/brizinger/GoScrapey`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("test")
+		fmt.Println("test")
 	},
 }
 
