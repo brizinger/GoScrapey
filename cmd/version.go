@@ -6,13 +6,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func getVersion() {
+	//TODO: Scrape version from github
+}
+
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "scrapey version",
 	Long:  `The current version of GoScrapey`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("version called")
+		fmt.Printf("GoScrapey version: %s\n", "0.0.1")
 	},
 }
 
