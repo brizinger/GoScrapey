@@ -35,7 +35,10 @@ var rootCmd = &cobra.Command{
 var directory string
 
 func init() {
-	rootCmd.Flags().StringVarP(&directory, "directory", "d", "", "Directory where the files will be written. Default is home")
+	path, err := homedir.Dir()
+	checkError(err)
+	info := "Directory where the files will be written. Default is " + path
+	rootCmd.Flags().StringVarP(&directory, "directory", "d", "", info)
 }
 
 // Execute - executes the command
@@ -46,6 +49,7 @@ func Execute() {
 	}
 }
 
+// Creates a file for the image and then places the image there
 func createImg(webURL string, imgURL string, client *http.Client) {
 
 	file, err := os.Create(createFileName(imgURL)) // Create file
@@ -66,6 +70,7 @@ func createImg(webURL string, imgURL string, client *http.Client) {
 
 }
 
+// Returns the file name of the image without the relative image path in the website
 func createFileName(imgURL string) string {
 	slice := strings.Split(imgURL, "/")
 
@@ -78,6 +83,7 @@ func checkError(err error) {
 	}
 }
 
+// Checks if directory is specified
 func getDirectory() {
 
 	if directory != "" {
@@ -90,6 +96,7 @@ func getDirectory() {
 	}
 }
 
+// Opens the specified page and downloads the images
 func scrapeWeb(web string) {
 
 	getDirectory()
