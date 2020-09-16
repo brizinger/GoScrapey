@@ -1,11 +1,15 @@
 package cmd
 
 import (
+	"bufio"
+	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"strings"
@@ -32,13 +36,16 @@ var rootCmd = &cobra.Command{
 	},
 }
 
-var directory string
-
+var directory string // directory flag var
+var upload bool      // upload flag var
+var hashes []string  // deletehashes of all images
 func init() {
 	path, err := homedir.Dir()
 	checkError(err)
 	info := "Directory where the files will be written. Default is " + path
 	rootCmd.Flags().StringVarP(&directory, "directory", "d", "", info)
+	rootCmd.Flags().BoolVarP(&upload, "upload", "u", false, "Upload to Imgur")
+
 }
 
 // Execute - executes the command
@@ -50,7 +57,7 @@ func Execute() {
 }
 
 // Creates a file for the image and then places the image there
-func createImg(webURL string, imgURL string, client *http.Client) {
+func createImg(webURL string, imgURL string, client *http.Client) *os.File {
 
 	file, err := os.Create(createFileName(imgURL)) // Create file
 	checkError(err)
@@ -66,8 +73,133 @@ func createImg(webURL string, imgURL string, client *http.Client) {
 	log.Printf("Writing image to file %s...", createFileName(imgURL))
 	defer file.Close()
 
+	fsize, err := file.Stat()
+	checkError(err)
+	size := fsize.Size() / 1024
+	log.Printf("Image size in KB: %v\n", size)
+
 	checkError(err)
 
+	if upload {
+		hashes = append(hashes, uploadImage(file))
+	}
+
+	return file
+
+}
+
+func createAlbum(imageHashes []string, web string) {
+	website := "Images from: " + web
+
+	url := "https://api.imgur.com/3/album"
+	method := "POST"
+
+	payload := &bytes.Buffer{}
+	writer := multipart.NewWriter(payload)
+	for i := 0; i < len(imageHashes); i++ {
+		_ = writer.WriteField("deletehashes[]", imageHashes[i])
+	}
+	_ = writer.WriteField("title", website)
+	_ = writer.WriteField("description", "Created with love by GoScrapey")
+	_ = writer.WriteField("privacy", "hidden")
+	err := writer.Close()
+	checkError(err)
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, payload)
+	checkError(err)
+
+	req.Header.Add("Authorization", GETAPIID())
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	res, err := client.Do(req)
+	checkError(err)
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	checkError(err)
+	result := string(body)
+	results := strings.Split(result, ",")
+
+	if strings.Contains((string(body)), "error") {
+		fmt.Println(string(body))
+		os.Exit(1)
+	}
+
+	for i := 0; i < len(results); i++ {
+		if strings.Contains(results[i], "id") {
+			id := results[i]
+			id = strings.Replace(id, `"`, "", -1)          // remove all "
+			id = strings.Replace(id, `}`, "", -1)          // remove } at the end
+			id = strings.Replace(id, `\`, "", -1)          // remove \
+			id = strings.Replace(id, `{data:{id:`, "", -1) // remove unnecessary stuff
+			link := `https://imgur.com/a/` + id
+			log.Println("*** Link to image album: " + link + " ***")
+		}
+	}
+}
+
+func uploadImage(image *os.File) string { // Upload single image to imgur
+	fstat, err := image.Stat()
+	checkError(err)
+	input, err := os.Open(fstat.Name())
+	checkError(err)
+	reader := bufio.NewReader(input)
+	content, _ := ioutil.ReadAll(reader)
+
+	// Encode as base64.
+	encodedImg := base64.StdEncoding.EncodeToString(content)
+
+	url := "https://api.imgur.com/3/image"
+	method := "POST"
+
+	payload := &bytes.Buffer{}
+	writer := multipart.NewWriter(payload)
+	_ = writer.WriteField("image", encodedImg)
+	err = writer.Close()
+	checkError(err)
+
+	client := &http.Client{}
+	req, err := http.NewRequest(method, url, payload)
+	checkError(err)
+
+	req.Header.Add("Authorization", GETAPIID())
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	res, err := client.Do(req)
+	checkError(err)
+	defer res.Body.Close()
+	body, err := ioutil.ReadAll(res.Body)
+	result := string(body)
+	results := strings.Split(result, ",")
+
+	if strings.Contains((string(body)), "error") {
+		fmt.Println(string(body))
+		os.Exit(1)
+	}
+
+	var hash string
+
+	for i := 0; i < len(results); i++ {
+		if strings.Contains(results[i], "link") {
+			link := results[i]
+			link = strings.Replace(link, `"`, "", -1) // remove all "
+			link = strings.Replace(link, `}`, "", -1) // remove } at the end
+			link = strings.Replace(link, `\`, "", -1) // remove \
+			// log.Println("!!! " + link + " !!!")
+		}
+
+		if strings.Contains(results[i], "deletehash") {
+			deletehash := results[i]
+			deletehash = strings.Replace(deletehash, `"`, "", -1)           // remove all "
+			deletehash = strings.Replace(deletehash, `}`, "", -1)           // remove } at the end
+			deletehash = strings.Replace(deletehash, `\`, "", -1)           // remove \
+			deletehash = strings.Replace(deletehash, `deletehash:`, "", -1) // remove \
+			log.Println("!!! " + deletehash + " !!!")
+			hash = deletehash
+		}
+	}
+
+	return hash
 }
 
 // Returns the file name of the image without the relative image path in the website
@@ -99,6 +231,8 @@ func getDirectory() {
 // Opens the specified page and downloads the images
 func scrapeWeb(web string) {
 
+	var files []*os.File
+
 	getDirectory()
 
 	url := web
@@ -128,7 +262,9 @@ func scrapeWeb(web string) {
 						for _, element := range n.Attr {
 							if element.Key == "src" {
 								imgSrcURL = element.Val
-								createImg(web, imgSrcURL, httpClient())
+								file := createImg(web, imgSrcURL, httpClient())
+								files = append(files, file)
+								log.Printf("File downloaded: %v\n", file.Name())
 							}
 							if element.Key == "data-original" {
 								imgDataOriginal = element.Val
@@ -136,6 +272,7 @@ func scrapeWeb(web string) {
 						}
 
 						log.Println("Found from: ", imgSrcURL, imgDataOriginal)
+
 					}
 
 					for c := n.FirstChild; c != nil; c = c.NextSibling {
@@ -152,6 +289,7 @@ func scrapeWeb(web string) {
 			log.Println("Page response IS nil")
 		}
 	}
+	createAlbum(hashes, web)
 }
 
 func httpClient() *http.Client {
