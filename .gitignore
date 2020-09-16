@@ -16,3 +16,6 @@
 
 # Test website directory
 /htmlTest
+
+# Go file containing the Cliend-ID
+api-key.go
