@@ -8,12 +8,12 @@ Or use the Makefile provided:
 
 ```make build``` will build the tool and place the binary in the folder bin as scrapey.
 
-Note: To use the tool from any directory, you need to export the current path or place the binary to a path you have already exported.
-
 # Usage
-```GoScrapey https://www.google.com/``` will download the images from google.com and place them in a default location (home directory).
+```scrapey https://www.google.com/``` will download the images from google.com and place them in a default location (home directory).
 
 You can also use the -d (--directory) flag to place the images in another location.
+
+Note: To use the tool from any directory, you need to export the current path or place the binary to a path you have already exported.
 
 # Contribution
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
