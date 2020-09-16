@@ -1,4 +1,4 @@
-# GoScrapey
+# GoScrapey ![CodeScan](https://github.com/brizinger/GoScrapey/workflows/Go/badge.svg?event=push) [![Go Report Card](https://goreportcard.com/badge/github.com/brizinger/GoScrapey)](https://goreportcard.com/report/github.com/brizinger/GoScrapey) [![codebeat badge](https://codebeat.co/badges/49f2e42d-e78a-4fee-939e-ecf13feb2b7b)](https://codebeat.co/projects/github-com-brizinger-goscrapey-master)
 Go tool that scrapes images from websites and downloads them.
 
 # Install
