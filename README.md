@@ -15,8 +15,6 @@ You can also use the -d (--directory) flag to place the images in another locati
 
 -u will upload the images on Imgur 
 
-Note: To use the tool from any directory, you need to export the current path or place the binary to a path you have already exported.
-
 # Contribution
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
