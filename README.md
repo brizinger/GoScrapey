@@ -4,6 +4,10 @@ Go tool that scrapes images from websites and downloads them.
 # Install
 ```go build .```
 
+Or use the Makefile provided:
+
+```make build``` will build the tool and place the binary in the folder bin as scrapey.
+
 # Usage
 ```GoScrapey https://www.google.com/``` will download the images from google.com and place them in a default location (home directory).
 
