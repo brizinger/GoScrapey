@@ -108,8 +108,8 @@ func createAlbum(imageHashes []string, web string) {
 	client := &http.Client{}
 	req, err := http.NewRequest(method, url, payload)
 	checkError(err)
-
-	req.Header.Add("Authorization", GETAPIID())
+	auth := GETAPIID()
+	req.Header.Add("Authorization", auth)
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	res, err := client.Do(req)
@@ -161,8 +161,8 @@ func uploadImage(image *os.File) string { // Upload single image to imgur
 	client := &http.Client{}
 	req, err := http.NewRequest(method, url, payload)
 	checkError(err)
-
-	req.Header.Add("Authorization", GETAPIID())
+	auth := GETAPIID() // Gets the ID from api-key.go
+	req.Header.Add("Authorization", auth)
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	res, err := client.Do(req)
