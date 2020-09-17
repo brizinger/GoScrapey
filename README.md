@@ -16,11 +16,7 @@ Or use the Makefile provided:
 
 You can also use the -d (--directory) flag to place the images in another location.
 
-<<<<<<< HEAD
 Note: The tool needs a Client-ID, which it reads from a file (ID.txt). You need to supply your own Client-ID, which could be retrieved from the official Imgur api.
-=======
--u will upload the images on Imgur 
->>>>>>> 838df374568aea049dc79f38155c55709992f987
 
 # Contribution
 
