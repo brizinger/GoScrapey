@@ -39,6 +39,8 @@ var rootCmd = &cobra.Command{
 var directory string // directory flag var
 var upload bool      // upload flag var
 var hashes []string  // deletehashes of all images
+var originalDir string
+
 func init() {
 	path, err := homedir.Dir()
 	checkError(err)
@@ -194,12 +196,18 @@ func uploadImage(image *os.File) string { // Upload single image to imgur
 			deletehash = strings.Replace(deletehash, `}`, "", -1)           // remove } at the end
 			deletehash = strings.Replace(deletehash, `\`, "", -1)           // remove \
 			deletehash = strings.Replace(deletehash, `deletehash:`, "", -1) // remove \
-			log.Println("!!! " + deletehash + " !!!")
+			// log.Println("!!! " + deletehash + " !!!")
 			hash = deletehash
 		}
 	}
-
+	getDirectory()
 	return hash
+}
+
+func getOriginalDir() string {
+	dir, err := os.Getwd()
+	checkError(err)
+	return dir
 }
 
 // Returns the file name of the image without the relative image path in the website
@@ -233,6 +241,7 @@ func scrapeWeb(web string) {
 
 	var files []*os.File
 
+	originalDir = getOriginalDir()
 	getDirectory()
 
 	url := web
@@ -289,7 +298,9 @@ func scrapeWeb(web string) {
 			log.Println("Page response IS nil")
 		}
 	}
-	createAlbum(hashes, web)
+	if upload {
+		createAlbum(hashes, web)
+	}
 }
 
 func httpClient() *http.Client {
