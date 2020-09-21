@@ -11,6 +11,7 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -59,13 +60,23 @@ func Execute() {
 }
 
 // Creates a file for the image and then places the image there
-func createImg(webURL string, imgURL string, client *http.Client) *os.File {
+func createImg(webURL string, imgURL string, client *http.Client) (f *os.File, err error) {
 
 	file, err := os.Create(createFileName(imgURL)) // Create file
+
+	if getImageExtension(file.Name()) == "svg" {
+		file.Close()
+		os.Remove(file.Name())
+		errText := "File " + file.Name() + " is of type SVG, which is currently not supported.\n"
+		err = errors.New(errText)
+		return nil, err
+	}
+
 	checkError(err)
 	log.Println("Createing file for image")
-	fullURL := webURL + imgURL
-
+	webURL = getHostName(webURL)
+	fullURL := "http://www." + webURL + imgURL
+	log.Println(fullURL)
 	resp, err := client.Get(fullURL) // Open image address
 	checkError(err)
 	log.Println("Opening image ...")
@@ -85,8 +96,8 @@ func createImg(webURL string, imgURL string, client *http.Client) *os.File {
 	if upload {
 		hashes = append(hashes, uploadImage(file))
 	}
-
-	return file
+	f = file
+	return f, nil
 
 }
 
@@ -236,6 +247,18 @@ func getDirectory() {
 	}
 }
 
+func getImageExtension(file string) string {
+	slice := strings.Split(file, ".")
+
+	return slice[len(slice)-1]
+}
+
+func getHostName(URL string) string {
+	u, err := url.Parse(URL)
+	checkError(err)
+	return u.Hostname()
+}
+
 // Opens the specified page and downloads the images
 func scrapeWeb(web string) {
 
@@ -271,7 +294,11 @@ func scrapeWeb(web string) {
 						for _, element := range n.Attr {
 							if element.Key == "src" {
 								imgSrcURL = element.Val
-								file := createImg(web, imgSrcURL, httpClient())
+								file, err := createImg(web, imgSrcURL, httpClient())
+								if err != nil {
+									log.Printf("ERROR: %s \n", err.Error())
+									continue
+								}
 								files = append(files, file)
 								log.Printf("File downloaded: %v\n", file.Name())
 							}
