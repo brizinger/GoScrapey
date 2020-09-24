@@ -14,7 +14,7 @@ Or use the Makefile provided:
 
 `scrapey https://www.google.com/` will download the images from google.com and place them in a default location (home directory).
 
-You can also use the -d (--directory) flag to place the images in another location.
+You can also use the -d (--directory) flag to place the images in another location. The -u flag will upload all images to an imgur album.
 
 Note: The tool needs a Client-ID, which it reads from a file (ID.txt) placed in the root of the project. You need to supply your own Client-ID, which could be retrieved from the official Imgur api if you are going to make changes or do not want to use the already build file.
 
