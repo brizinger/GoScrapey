@@ -28,8 +28,13 @@ var rootCmd = &cobra.Command{
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) < 1 {
 			return errors.New("Requires a web URL to read from")
+		} else if len(args) > 1 {
+			return errors.New("Too many arguments. Needs only 1 URL")
 		}
-		return nil
+		if checkURLValidity(args[0]) {
+			return nil
+		}
+		return errors.New("URL is not valid")
 
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -59,12 +64,22 @@ func Execute() {
 	}
 }
 
-// Creates a file for the image and then places the image there
+// Checks the validity of the provided URL. Example: www.google.com and https://www.google.com are both valid but google.com is not.
+func checkURLValidity(URL string) bool {
+
+	_, err := url.ParseRequestURI(URL)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+// Creates a file for the image and then places the image there.
 func createImg(webURL string, imgURL string, client *http.Client) (f *os.File, err error) {
 
-	file, err := os.Create(createFileName(imgURL)) // Create file
+	file, err := os.Create(createFileName(imgURL)) // Create file.
 
-	if getImageExtension(file.Name()) == "svg" {
+	if getImageExtension(file.Name()) == "svg" { // unsupported.
 		file.Close()
 		os.Remove(file.Name())
 		errText := "File " + file.Name() + " is of type SVG, which is currently not supported.\n"
@@ -75,14 +90,24 @@ func createImg(webURL string, imgURL string, client *http.Client) (f *os.File, e
 	checkError(err)
 	log.Println("Createing file for image")
 	webURL = getHostName(webURL)
-	fullURL := "http://www." + webURL + imgURL
+
+	var fullURL string
+
+	if strings.Contains(imgURL, "http") { // imgURL contains full URL and does not need to be added to the webURL.
+		fullURL = imgURL
+	} else if strings.Contains(webURL, "https://") || strings.Contains(webURL, "http://") { // imgURL is relative, webURL is added.
+		fullURL = webURL + imgURL
+	} else { // No protocol found. Adding protocol.
+		fullURL = "http://" + webURL + imgURL
+	}
+
 	log.Println(fullURL)
-	resp, err := client.Get(fullURL) // Open image address
+	resp, err := client.Get(fullURL) // Open image address.
 	checkError(err)
 	log.Println("Opening image ...")
 	defer resp.Body.Close()
 
-	io.Copy(file, resp.Body) // Copy img to file
+	io.Copy(file, resp.Body) // Copy img to file.
 	log.Printf("Writing image to file %s...", createFileName(imgURL))
 	defer file.Close()
 
@@ -101,6 +126,7 @@ func createImg(webURL string, imgURL string, client *http.Client) (f *os.File, e
 
 }
 
+// Creates the album in Imgur and adds the images in it.
 func createAlbum(imageHashes []string, web string) {
 	website := "Images from: " + web
 
@@ -146,11 +172,24 @@ func createAlbum(imageHashes []string, web string) {
 			id = strings.Replace(id, `\`, "", -1)          // remove \
 			id = strings.Replace(id, `{data:{id:`, "", -1) // remove unnecessary stuff
 			link := `https://imgur.com/a/` + id
-			log.Println("*** Link to image album: " + link + " ***")
+			log.Printf("*** Link to image album: %s ***\n", link)
+
+			if directory != "" {
+				if directory == "." { // Directory is this one
+					log.Printf("*** Local directory containing the images: %s\n", getOriginalDir())
+				} else {
+					log.Printf("*** Local directory containing the images: %s\n", directory)
+				}
+			} else { // No directory specified. Find the home directory
+				path, err := homedir.Dir()
+				checkError(err)
+				log.Printf("*** Local directory containing the images: %s\n", path)
+			}
 		}
 	}
 }
 
+// Uploads the current image to Imgur and returns the deletehash, which is later used to add the image to the album.
 func uploadImage(image *os.File) string { // Upload single image to imgur
 	fstat, err := image.Stat()
 	checkError(err)
@@ -215,6 +254,7 @@ func uploadImage(image *os.File) string { // Upload single image to imgur
 	return hash
 }
 
+// Returns the original dir the command is ran from.
 func getOriginalDir() string {
 	dir, err := os.Getwd()
 	checkError(err)
@@ -228,6 +268,7 @@ func createFileName(imgURL string) string {
 	return slice[len(slice)-1]
 }
 
+// Simple error check with panic
 func checkError(err error) {
 	if err != nil {
 		panic(err)
@@ -247,12 +288,14 @@ func getDirectory() {
 	}
 }
 
+// Returns the image extension
 func getImageExtension(file string) string {
 	slice := strings.Split(file, ".")
 
 	return slice[len(slice)-1]
 }
 
+// Returns the hostname
 func getHostName(URL string) string {
 	u, err := url.Parse(URL)
 	checkError(err)
